@@ -192,29 +192,46 @@ void SparkProtocol::variable_value(unsigned char *buf,
   encrypt(buf, 32);
 }
 
-void SparkProtocol::variable_value(unsigned char *buf,
-                                   unsigned char token,
-                                   const void *return_value,
-                                   int length)
+// returns 0 on success, 1 if buf is not long enough
+int SparkProtocol::variable_value(unsigned char *buf,
+                                  unsigned char token,
+                                  const void *return_value,
+                                  int return_length,
+                                  int buf_length)
 {
   unsigned short message_id = next_message_id();
+  unsigned short message_length = 8 + return_length;
+  int needed_buf_length = (message_length & ~15) + 16;
+  int error = buf_length < needed_buf_length;
 
-  buf[0] = 0x61; // acknowledgment, one-byte token
-  buf[1] = 0x45; // response code 2.05 CONTENT
-  buf[2] = message_id >> 8;
-  buf[3] = message_id & 0xff;
-  buf[4] = token;
-  buf[5] = 0xff; // payload marker
-  buf[6] = 0x04; // ASN.1 OCTET STRING type tag
+  if (error)
+  {
+    needed_buf_length = 16;
+    message_length = 13;
+    memcpy(buf + 8, "error", 5);
+  }
+  else
+  {
+    memcpy(buf + 8, return_value, return_length);
+  }
 
-  memcpy(buf + 7, return_value, length);
+  char pad = needed_buf_length - message_length;
+  memset(buf + message_length, pad, pad); // PKCS #7 padding
 
-  int msglen = 7 + length;
-  int buflen = (msglen & ~15) + 16;
-  char pad = buflen - msglen;
-  memset(buf + msglen, pad, pad); // PKCS #7 padding
+  message_length -= 2; // remove the 2 initial length bytes
 
-  encrypt(buf, buflen);
+  buf[0] = message_length >> 8;   // remaining message length MSB
+  buf[1] = message_length & 0xff; // remaining message length LSB
+  buf[2] = 0x61; // acknowledgment, one-byte token
+  buf[3] = 0x45; // response code 2.05 CONTENT
+  buf[4] = message_id >> 8;
+  buf[5] = message_id & 0xff;
+  buf[6] = token;
+  buf[7] = 0xff; // payload marker
+
+  encrypt(buf, needed_buf_length);
+
+  return error;
 }
 
 void SparkProtocol::event(unsigned char *buf,

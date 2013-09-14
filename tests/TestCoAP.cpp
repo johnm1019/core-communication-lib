@@ -461,12 +461,25 @@ SUITE(CoAP)
   TEST_FIXTURE(CoAPFixture, VariableValueStringMatchesOpenSSL)
   {
     uint8_t expected[16] = {
-      0x71, 0xc4, 0x22, 0xc1, 0x77, 0x1a, 0xd5, 0x4a,
-      0x54, 0x39, 0xfb, 0xe0, 0xe0, 0xd9, 0x1c, 0x80 };
+      0x10, 0x2e, 0xf2, 0x37, 0xb2, 0x14, 0xb4, 0xec,
+      0x46, 0x9d, 0xc9, 0x70, 0xc1, 0x56, 0x59, 0x12 };
     unsigned char buf[16];
     memset(buf, 0, 16);
     init();
-    spark_protocol.variable_value(buf, 0x5c, "woot", 4);
+    spark_protocol.variable_value(buf, 0x5c, "woot", 4, 16);
+    CHECK_ARRAY_EQUAL(expected, buf, 16);
+  }
+
+  TEST_FIXTURE(CoAPFixture, VariableValueStringErrorIfBufTooShort)
+  {
+    uint8_t expected[16] = {
+      0x2a, 0x34, 0xf2, 0x85, 0x30, 0x90, 0x16, 0x23,
+      0xb5, 0x80, 0xa1, 0x9d, 0x95, 0x0a, 0xc7, 0x0b };
+    unsigned char buf[16];
+    memset(buf, 0, 16);
+    init();
+    int error = spark_protocol.variable_value(buf, 0x5b, "Long string", 11, 16);
+    CHECK_EQUAL(1, error);
     CHECK_ARRAY_EQUAL(expected, buf, 16);
   }
 
