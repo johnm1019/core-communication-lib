@@ -519,13 +519,15 @@ void SparkProtocol::separate_response(unsigned char *buf,
 {
   unsigned short message_id = next_message_id();
 
-  buf[0] = 0x51; // non-confirmable, one-byte token
-  buf[1] = code;
-  buf[2] = message_id >> 8;
-  buf[3] = message_id & 0xff;
-  buf[4] = token;
+  buf[0] = 0x00; // remaining message length MSB
+  buf[1] = 0x05; // remaining message length LSB
+  buf[2] = 0x51; // non-confirmable, one-byte token
+  buf[3] = code;
+  buf[4] = message_id >> 8;
+  buf[5] = message_id & 0xff;
+  buf[6] = token;
 
-  memset(buf + 5, 11, 11); // PKCS #7 padding
+  memset(buf + 7, 9, 9); // PKCS #7 padding
 
   encrypt(buf, 16);
 }
