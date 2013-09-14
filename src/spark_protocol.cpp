@@ -81,14 +81,16 @@ void SparkProtocol::hello(unsigned char *buf)
 {
   unsigned short message_id = next_message_id();
 
-  buf[0] = 0x50; // non-confirmable, no token
-  buf[1] = 0x02; // POST
-  buf[2] = message_id >> 8;
-  buf[3] = message_id & 0xff;
-  buf[4] = 0xb1; // Uri-Path option of length 1
-  buf[5] = 'h';
+  buf[0] = 0x00; // remaining message length MSB
+  buf[1] = 0x06; // remaining message length LSB
+  buf[2] = 0x50; // non-confirmable, no token
+  buf[3] = 0x02; // POST
+  buf[4] = message_id >> 8;
+  buf[5] = message_id & 0xff;
+  buf[6] = 0xb1; // Uri-Path option of length 1
+  buf[7] = 'h';
 
-  memset(buf + 6, 10, 10); // PKCS #7 padding
+  memset(buf + 8, 8, 8); // PKCS #7 padding
   
   encrypt(buf, 16);
 }
