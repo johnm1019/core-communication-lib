@@ -176,19 +176,20 @@ void SparkProtocol::variable_value(unsigned char *buf,
 {
   unsigned short message_id = next_message_id();
 
-  buf[0] = 0x61; // acknowledgment, one-byte token
-  buf[1] = 0x45; // response code 2.05 CONTENT
-  buf[2] = message_id >> 8;
-  buf[3] = message_id & 0xff;
-  buf[4] = token;
-  buf[5] = 0xff; // payload marker
-  buf[6] = 0x09; // ASN.1 REAL type tag, here meaning 8-byte double
+  buf[0] = 0x00; // remaining message length MSB
+  buf[1] = 0x0e; // remaining message length LSB
+  buf[2] = 0x61; // acknowledgment, one-byte token
+  buf[3] = 0x45; // response code 2.05 CONTENT
+  buf[4] = message_id >> 8;
+  buf[5] = message_id & 0xff;
+  buf[6] = token;
+  buf[7] = 0xff; // payload marker
 
-  memcpy(buf + 7, &return_value, 8);
+  memcpy(buf + 8, &return_value, 8);
 
-  buf[15] = 0x01; // PKCS #7 padding
+  memset(buf + 16, 16, 16); // PKCS #7 padding
 
-  encrypt(buf, 16);
+  encrypt(buf, 32);
 }
 
 void SparkProtocol::variable_value(unsigned char *buf,
