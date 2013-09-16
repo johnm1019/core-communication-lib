@@ -323,16 +323,16 @@ void SparkProtocol::description(unsigned char *buf, unsigned char token,
 {
   unsigned short message_id = next_message_id();
 
-  buf[0] = 0x61; // acknowledgment, one-byte token
-  buf[1] = 0x45; // response code 2.05 CONTENT
-  buf[2] = message_id >> 8;
-  buf[3] = message_id & 0xff;
-  buf[4] = token;
-  buf[5] = 0xff; // payload marker
+  buf[2] = 0x61; // acknowledgment, one-byte token
+  buf[3] = 0x45; // response code 2.05 CONTENT
+  buf[4] = message_id >> 8;
+  buf[5] = message_id & 0xff;
+  buf[6] = token;
+  buf[7] = 0xff; // payload marker
 
-  memcpy(buf + 6, "{\"f\":[", 6);
+  memcpy(buf + 8, "{\"f\":[", 6);
 
-  unsigned char *buf_ptr = buf + 12;
+  unsigned char *buf_ptr = buf + 14;
   for (int i = 0; i < num_functions; ++i)
   {
     if (i)
@@ -354,12 +354,16 @@ void SparkProtocol::description(unsigned char *buf, unsigned char token,
   memcpy(buf_ptr, "]}", 2);
   buf_ptr += 2;
 
-  int msglen = buf_ptr - buf;
-  int buflen = (msglen & ~15) + 16;
-  char pad = buflen - msglen;
+  unsigned short message_length = buf_ptr - buf;
+  int buf_length = (message_length & ~15) + 16;
+  char pad = buf_length - message_length;
   memset(buf_ptr, pad, pad); // PKCS #7 padding
 
-  encrypt(buf, 32);
+  message_length -= 2;
+  buf[0] = message_length >> 8;   // remaining message length MSB
+  buf[1] = message_length & 0xff; // ramaining message length LSB
+
+  encrypt(buf, buf_length);
 }
 
 
