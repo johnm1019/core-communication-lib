@@ -243,23 +243,26 @@ void SparkProtocol::event(unsigned char *buf,
     event_name_length = 12;
 
   unsigned short message_id = next_message_id();
+  unsigned short message_length = 7 + event_name_length;
 
-  buf[0] = 0x50; // non-confirmable, no token
-  buf[1] = 0x02; // code 0.02 POST request
-  buf[2] = message_id >> 8;
-  buf[3] = message_id & 0xff;
-  buf[4] = 0xb1; // one-byte Uri-Path option
-  buf[5] = 'e';
-  buf[6] = event_name_length;
+  buf[0] = message_length >> 8;  // remaining message length MSB
+  buf[1] = message_length & 0xff; // remaining message length LSB
+  buf[2] = 0x50; // non-confirmable, no token
+  buf[3] = 0x02; // code 0.02 POST request
+  buf[4] = message_id >> 8;
+  buf[5] = message_id & 0xff;
+  buf[6] = 0xb1; // one-byte Uri-Path option
+  buf[7] = 'e';
+  buf[8] = event_name_length;
   
-  memcpy(buf + 7, event_name, event_name_length);
+  memcpy(buf + 9, event_name, event_name_length);
 
-  int msglen = 7 + event_name_length;
-  int buflen = (msglen & ~15) + 16;
-  char pad = buflen - msglen;
-  memset(buf + msglen, pad, pad); // PKCS #7 padding
+  message_length += 2;
+  int buf_length = (message_length & ~15) + 16;
+  char pad = buf_length - message_length;
+  memset(buf + message_length, pad, pad); // PKCS #7 padding
 
-  encrypt(buf, buflen);
+  encrypt(buf, buf_length);
 }
 
 void SparkProtocol::event(unsigned char *buf,
