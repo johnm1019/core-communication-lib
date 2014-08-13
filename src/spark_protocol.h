@@ -37,7 +37,7 @@
 #   define arraySize(a)            (sizeof((a))/sizeof((a[0])))
 #endif
 
-typedef unsigned long system_tick_t; // This needs to match the definition of millis
+typedef uint32_t system_tick_t; // This needs to match the definition of millis
 
 namespace ProtocolState {
   enum Enum {
